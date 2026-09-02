@@ -128,6 +128,21 @@ jobs:
           export CC=aarch64-linux-gnu-gcc
         fi
         cargo build --verbose --release --target ${{ matrix.cargo_targets }}
+    - name: Get artifact path
+      shell: bash
+      run: |
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          echo "artifactPath=target/${{ matrix.cargo_targets }}/release/${{ env.BIN_NAME }}.exe" >> $GITHUB_ENV
+        else
+          echo "artifactPath=target/${{ matrix.cargo_targets }}/release/${{ env.BIN_NAME }}" >> $GITHUB_ENV
+        fi
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ env.BIN_NAME }}-${{ needs.create-release.outputs.release_version }}-${{ matrix.target }}
+        path: ${{ env.artifactPath }}
+    # TODO: replace this with gh cli
+    # https://docs.github.com/en/actions/tutorials/build-and-test-code/rust#packaging-workflow-data-as-artifacts
     - name: Build archive
       shell: bash
       run: |
@@ -143,12 +158,6 @@ jobs:
           tar czf "$staging.tar.gz" -C "$staging" .
           echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
         fi
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v7
-      with:
-        name: ${{ env.ASSET }}
-        path: ${{ env.ASSET }}
-        archive: false
     - name: Upload release archive
       uses: actions/upload-release-asset@v1.0.2
       if: github.event.inputs.upload_artifacts == 'true' || github.event_name == 'push'
